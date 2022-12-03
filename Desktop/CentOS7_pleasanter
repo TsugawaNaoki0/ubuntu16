@@ -1,0 +1,352 @@
+
+
+
+
+
+
+
+
+
+
+----------------------------------------------------------------------
+
+sudo rpm -Uvh https://packages.microsoft.com/config/centos/7/packages-microsoft-prod.rpm
+
+----------------------------------------------------------------------
+
+   https://qiita.com/piyojiro/items/58f9a89120808e1c1e84
+
+yum -y install wget
+yum -y install epel-release
+yum -y install dnf
+
+----------------------------------------------------------------------
+
+dnf install -y dotnet-sdk-6.0
+
+----------------------------------------------------------------------
+
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+----------------------------------------------------------------------
+
+dnf install -y libgdiplus
+
+----------------------------------------------------------------------
+
+dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+
+----------------------------------------------------------------------
+
+dnf module -y disable postgresql  @@@
+
+cat /etc/passwd
+
+   postgres:x:26:26:PostgreSQL Server:/var/lib/pgsql:/bin/bash
+
+----------------------------------------------------------------------
+
+dnf install -y postgresql14-server postgresql14-contrib
+
+----------------------------------------------------------------------
+
+/usr/pgsql-14/bin/postgresql-14-setup initdb
+
+----------------------------------------------------------------------
+
+systemctl enable postgresql-14
+
+----------------------------------------------------------------------
+
+   /var/lib/pgsql/14/data/pg_hba.conf 
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+# "local" is for Unix domain socket connections only
+local   all             all                                     peer
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            md5
+host    replication     all             ::1/128                 md5
+
+----------------------------------------------------------------------
+
+   /var/lib/pgsql/14/data/postgresql.conf
+
+log_destination = 'stderr'
+logging_collector = on
+log_line_prefix = '[%t]%u %d %p[%l]'
+
+----------------------------------------------------------------------
+
+systemctl restart postgresql-14
+
+----------------------------------------------------------------------
+
+passwd postgres
+
+   19960701sql
+
+----------------------------------------------------------------------
+
+su - postgres
+
+----------------------------------------------------------------------
+
+psql -U postgres
+
+   19960701sql0   2回目はなかった
+----------------------------------------------------------------------
+
+postgres=# alter role postgres with password '19960701sql0';
+
+----------------------------------------------------------------------
+
+create database "Implem.Pleasanter";
+
+----------------------------------------------------------------------
+
+\l
+
+----------------------------------------------------------------------
+
+\c "Implem.Pleasanter";
+
+----------------------------------------------------------------------
+
+create extension pg_trgm;
+
+----------------------------------------------------------------------
+
+   /var/lib/pgsql/14/data/postgresql.conf
+
+listen_addresses = '*'  # what IP address(es) to listen on;
+port = 5432             # (change requires restart)
+
+----------------------------------------------------------------------
+
+exit
+
+----------------------------------------------------------------------
+
+systemctl restart postgresql-14
+
+----------------------------------------------------------------------
+
+cd
+
+----------------------------------------------------------------------
+
+mkdir web
+
+----------------------------------------------------------------------
+
+cd web/
+
+----------------------------------------------------------------------
+
+wget https://github.com/Implem/Implem.Pleasanter.NetCore/releases/download/Pleasanter_1.3.24.0/Pleasanter_1.3.24.0.zip
+
+(右クリックで[リンクのアドレスをコピー])(３つあるうちの一番上)
+
+----------------------------------------------------------------------
+
+yum install zipv
+[y]
+[y]
+[y]
+[y]
+[y]
+[y]
+[y]
+
+----------------------------------------------------------------------
+
+yum install unzip
+[y]
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+unzip Pleasanter_1.3.24.0.zip
+[y]
+
+----------------------------------------------------------------------
+
+
+
+----------------------------------------------------------------------
+
+
+
+----------------------------------------------------------------------
+
+cd /pleasanter/Implem.Pleasanter/App_Data/Parameters/
+
+----------------------------------------------------------------------
+
+vi Rds.json
+
+----------------------------------------------------------------------
+
+{
+    "Dbms": "PostgreSQL",
+    "Provider": "Local",
+    "TimeZoneInfo": "Asia/Tokyo",
+    "SaConnectionString":"Server=localhost;Port=5432;Database=postgres;UID=postgres;PWD=19
+960701sql0",
+    "OwnerConnectionString":"Server=localhost;Port=5432;Database=postgres;UID=postgres_Own
+er;PWD=19960701sql0",
+    "UserConnectionString":"Server=localhost;Port=5432;Database=postgres;UID=postgres_User
+;PWD=19960701sql0",
+    "SqlCommandTimeOut": 600,
+    "MinimumTime": 3,
+    "DeadlockRetryCount": 4,
+    "DeadlockRetryInterval": 1000
+}
+
+----------------------------------------------------------------------
+
+cd
+
+----------------------------------------------------------------------
+
+cd /web/pleasanter/Implem.CodeDefiner
+
+----------------------------------------------------------------------
+
+dotnet Implem.CodeDefiner.dll _rds
+
+----------------------------------------------------------------------
+
+cd ../Implem.Pleasanter
+
+----------------------------------------------------------------------
+
+dotnet Implem.Pleasanter.dll
+
+----------------------------------------------------------------------
+
+touch /etc/systemd/system/pleasanter.service
+
+----------------------------------------------------------------------
+
+vi /etc/systemd/system/pleasanter.service
+
+----------------------------------------------------------------------
+
+[Unit]
+Description = Pleasanter
+Documentation =
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart = /bin/dotnet Implem.Pleasanter.dll (※1)
+WorkingDirectory = /web/pleasanter/Implem.Pleasanter
+Restart = always
+RestartSec = 10
+KillSignal=SIGINT
+SyslogIdentifier=dotnet-pleasanter
+User = root
+Group = root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy = multi-user.target
+
+
+
+(※1)
+
+which dotnet
+
+----------------------------------------------------------------------
+
+systemctl daemon-reload
+
+----------------------------------------------------------------------
+
+systemctl enable pleasanter
+
+----------------------------------------------------------------------
+
+systemctl start pleasanter
+
+----------------------------------------------------------------------
+
+dnf install -y nginx
+
+----------------------------------------------------------------------
+
+systemctl enable nginx
+
+----------------------------------------------------------------------
+
+yum update
+[y]
+
+----------------------------------------------------------------------
+
+yum -y install firewalld
+
+----------------------------------------------------------------------
+
+systemctl status firewalld
+
+----------------------------------------------------------------------
+
+systemctl start firewalld.service
+
+----------------------------------------------------------------------
+
+systemctl enable firewalld
+
+----------------------------------------------------------------------
+
+firewall-cmd --permanent --zone=public --add-port=80/tcp
+
+----------------------------------------------------------------------
+
+firewall-cmd --reload
+
+----------------------------------------------------------------------
+
+firewall-cmd --list-all
+
+----------------------------------------------------------------------
+
+setsebool httpd_can_network_connect on -P
+
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+
+----------------------------------------------------------------------
+
+yum -y install --enablerepo=remi,remi-php73 php php-devel php-mbstring php-pdo php-mysql php-gd php-xml php-mcrypt
+
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+
+
+
+
+
+dnf install -y dotnet-sdk-6.0
+
+
+
